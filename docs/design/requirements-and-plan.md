@@ -164,6 +164,16 @@ Decided by the user on 2026-10-31 (it replaces the earlier default, Opus 5.5). T
 
 If any of these fails and has no quick fix: plan B, the Anthropic SDK with a hand-written loop.
 
+**Spike result (2026-10-31): passed; plan B not needed.** PydanticAI 2.64 + `claude-haiku-5-5`, 3-turn conversation with a tool call and one forced `ModelRetry`:
+1. 5 requests, all accepted; signed thinking blocks replayed in later turns; system prompt and tool list identical in every request.
+2. No sampling parameter sent. PydanticAI's Haiku 5.5 profile drops a configured `temperature` with a warning; it sends `output_config.effort` and omits `thinking` (adaptive by default).
+3. The `[Contexto]` block reached the model as a separate text block in the user turn, and Tom used it to answer "A loja está aberta agora?".
+4. An API error raises `ModelHTTPError`. A refusal raises `ContentFilterError` only when the agent has the `RaiseContentFilterError` capability, so `agent.py` adds it.
+
+Measured: 0.8–4.1 s per turn (the 4.1 s turn had 3 model requests), US$ 0.00075 for the whole conversation. Implementation notes:
+- Set `PYDANTIC_AI_NO_BANNER=1` (PydanticAI prints a banner otherwise).
+- In turn 1, Tom volunteered the store status unasked. The system prompt says to mention it only when it is relevant.
+
 ## 6. Data model
 
 ### 6.1 Entities (from `data/raw/*.csv`)

@@ -52,7 +52,7 @@ Settings (`.env`):
 ## How it works
 
 ```mermaid
-flowchart LR
+flowchart TB
     U[Customer] --> UI[Gradio UI / CLI]
     UI --> S[Session<br/>append-only history<br/>verified customer, tickets]
     S -->|context block + message| A[PydanticAI agent<br/>frozen system prompt<br/>Claude Haiku 5.5]

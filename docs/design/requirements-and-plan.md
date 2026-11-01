@@ -427,5 +427,6 @@ No force-push, no history rewrite, no change after 2026-11-04 23:59.
 | H2 | PDF name: "Gabriel Oliveira Souza - AI Engineer" |
 | H3 | Public repo `gabrielolvr11/emporio-agent`; commits and pushes during implementation without asking each time |
 | H4 | Live demo with a script plus README with a Mermaid diagram; no slides |
+| P1-7 result | Same 16 scenarios, one run each: Haiku 5.5 and Sonnet 5.5 both 16/16, median 2.9 s per turn; US$ 0.022 vs US$ 0.400. Haiku 5.5 stays the model |
 | Holidays | User request (31/10): Tom knows that Mon 02/11 is a holiday; the store does not open on Sundays or holidays. National and state holidays from Campo Grande's Decreto 16.469/2025; municipal holidays left out (sources disagree) |
 | Approval | Document approved on 2026-10-31, including the points added after the interview: P1-5 numeric fidelity guard, P1-7 Haiku vs Sonnet comparison, stdlib `csv` + Pydantic instead of pandas, explicit corrections step for the manual's scrambled tables (§6.2 rule 9) |

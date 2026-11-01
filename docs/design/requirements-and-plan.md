@@ -60,7 +60,7 @@ The LLM picks which tool to call and writes the reply. A guard checks every R$ a
 | D1 | Public GitHub repo with incremental commits, no force-push, frozen at the deadline | Brief | git | commit history |
 | D2 | README: run instructions; justification (framework, LLM, retrieval, prompt); limitations and next steps; AI-assistant workflow | Brief | `README.md` | review |
 | D3 | 3–5 example conversations, at least one non-trivial | Brief | `examples/conversations/` | files exist (real eval transcripts) |
-| D4 | English PDF named **"Gabriel Oliveira Souza - AI Engineer"**, sent via the Google Form, plus the repo link in reply to the email | Email, Decision H2 | `docs/submission/` (PDF kept out of git) | sent before the deadline |
+| D4 | English PDF named **"Gabriel Oliveira Souza - Engenheiro(a) de IA – Full-Stack para Aplicações com IA Generativa"**, generated from the README and the documentation (the Google Form asks AI Engineer candidates for that), sent via the form, plus the repo link in reply to the email | Email, form, Decision H2 | `scripts/build_pdf.py` → `dist/` (PDF kept out of git) | sent before the deadline |
 
 ### 2.2 P1: priority differentiators (approved in A4 and C4)
 
@@ -386,7 +386,7 @@ No force-push, no history rewrite, no change after 2026-11-04 23:59.
 - [ ] 3–5 conversations in `examples/conversations/`, at least one non-trivial (E-04 or E-07)
 - [ ] README: setup, model provider, commands, decisions (framework, LLM, retrieval, prompt), Mermaid architecture, data handling, assumptions, limitations and next steps, AI-assistant workflow (this requirements → plan → implementation process)
 - [ ] Public repo with an incremental history, last commit before 04/11 23:59
-- [ ] PDF "Gabriel Oliveira Souza - AI Engineer" (English) sent via the Google Form; email reply with the repo link
+- [ ] PDF "Gabriel Oliveira Souza - Engenheiro(a) de IA – Full-Stack para Aplicações com IA Generativa" (English) sent via the Google Form; email reply with the repo link
 - [ ] Demo rehearsed once end to end
 
 ## 13. Demo script (about 10 min, H4: live demo + README, no slides)
@@ -424,7 +424,7 @@ No force-push, no history rewrite, no change after 2026-11-04 23:59.
 | F1 | "Mostrar raciocínio" switch on by default; default look approved |
 | G1 | Tests and scenarios approved; example conversations are real eval transcripts |
 | H1 | This document, in English, in `docs/design/` |
-| H2 | PDF name: "Gabriel Oliveira Souza - AI Engineer" |
+| H2 | PDF name: "Gabriel Oliveira Souza - Engenheiro(a) de IA – Full-Stack para Aplicações com IA Generativa" (position title corrected by the user on 01/11; first given as "AI Engineer") |
 | H3 | Public repo `gabrielolvr11/emporio-agent`; commits and pushes during implementation without asking each time |
 | H4 | Live demo with a script plus README with a Mermaid diagram; no slides |
 | P1-7 result | Same 16 scenarios, one run each: Haiku 5.5 and Sonnet 5.5 both 16/16, median 2.9 s per turn; US$ 0.022 vs US$ 0.400. Haiku 5.5 stays the model |

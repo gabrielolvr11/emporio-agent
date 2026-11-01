@@ -32,7 +32,7 @@ The LLM picks which tool to call and writes the reply. A guard checks every R$ a
 - Return-window eligibility, computed from the order dates.
 - Ticket with a protocol number for complaints, returns, human handoff and unanswered questions.
 - Out-of-scope handling: accessories are redirected and unrelated topics are politely declined.
-- Awareness of the current date and time in Campo Grande ("we are closed, we reopen Monday at 9:00").
+- Awareness of the current date and time in Campo Grande, holidays included ("we are closed; Monday is a holiday, we reopen Tuesday at 9:00").
 - Gradio chat UI in the store's visual identity, with a "Mostrar raciocínio" switch that shows the tools and policies consulted.
 - Automated evaluation: ~15 scenarios against the real LLM, plus fast tests without the API.
 
@@ -94,7 +94,7 @@ LLM-as-judge for tone and coherence · token streaming in the UI · repeated eva
 A single agent with tool calling. Tools are plain Python functions over in-memory data; business rules live in pure functions that are easy to test.
 
 ```mermaid
-flowchart LR
+flowchart TB
     U[Customer] --> UI[Gradio UI / CLI]
     UI --> S[Session<br/>append-only history<br/>verified customer]
     S --> A[PydanticAI agent<br/>frozen system prompt<br/>Claude Haiku 5.5]
@@ -131,7 +131,7 @@ Other folders: `scripts/` (policy extraction, data report), `tests/` (pytest), `
 
 | Choice | Why | Discarded |
 |---|---|---|
-| **Python 3.12 + uv** | Required language; `uv` gives reproducible installs (`pip install -e .` documented as an alternative) | Poetry: slower, no gain here |
+| **Python 3.12 + uv** | Required language; `uv` gives reproducible installs from the lock file | Poetry: slower, no gain here |
 | **Anthropic, Claude Haiku 5.5** (`claude-haiku-5-5`), switchable with `MODEL` | The user's provider (C1); Haiku 5.5 chosen as the starting model (see §5.1) | OpenAI/Gemini: valid, but the user already uses Anthropic |
 | **PydanticAI v2** | Tools are typed Python functions; it manages the message history; built-in `TestModel`/`FunctionModel` allow tests without the API; output validators implement the guard natively; switching provider is a one-string change | Hand-written loop on the Anthropic SDK (plan B, ~120 lines); LangChain/LangGraph: too much abstraction for 5 tools |
 | **Policy lookup by section** (`get_policy(topic)`) | 8-page manual; makes the "when to consult a policy" decision visible and testable | Whole manual in the prompt (hides that decision); vector search (overkill for 8 pages; a README "with more data" item) |
@@ -195,7 +195,7 @@ erDiagram
 | Promotion | 25 | `product_id`, `discount_percent`, `description`, `is_active` (no validity dates) |
 | Customer | 50 | `customer_id`, `name`, `phone`, `email`, `city` |
 | Order | 20 | `order_id`, `customer_id`, `order_date`, `status`, `total_brl`, `payment_method`, `tracking_code`, `estimated_delivery`, `notes` |
-| OrderItem | ~21 | `order_id`, `product_id`, `quantity` |
+| OrderItem | 22 | `order_id`, `product_id`, `quantity` |
 
 Runtime records: **Ticket** (`protocol`, `created_at`, `kind`, `summary`, `customer_id?`, `session_id`) and **TurnLog** (`session_id`, latency, tokens, tools called, guard result).
 
@@ -313,7 +313,7 @@ The report records pass/fail per check, latency per turn, tokens and cost. **The
 | E-10 | Order status: no data first, then 2 of 3 identifiers | asks for data; then status and tracking |
 | E-11 | Someone else's order (order number + wrong e-mail) | refused; no data leaked |
 | E-12 | Complaint | `open_ticket(complaint)`; protocol; 24 business hours |
-| E-13 | Store closed (`AGENT_NOW` = Sunday) | "we reopen Monday at 9:00" |
+| E-13 | Store closed on Sunday 01/11 (`AGENT_NOW`), the day before Finados | closed; Monday is a holiday; reopens Tuesday 03/11 at 9:00 |
 | E-14 | Follow-up "e em 10x?" after E-03 | installments of the same product, from the tool |
 | E-15 | Conversation in English | replies in English |
 | E-16 | Defect after the legal warranty (added after a manual run) | windows reported as closed; manufacturer warranty mentioned |

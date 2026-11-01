@@ -217,7 +217,7 @@ I built this with **Claude Code** (Anthropic's agentic coding CLI, running Claud
 3. **Implementation in small, verified steps.** One step at a time (data, policies, rules, tools, agent, guard, CLI, evals, UI), each with its tests, committed and pushed only when green, as the commit history shows. When I saw a gap, it became a requirement: Tom now knows that the store doesn't open on holidays because I asked for it after seeing the plan's limitation.
 4. **Evidence over assumptions.** The framework was tried against the real API before we built on it. Library behavior was checked in its installed source (for example how PydanticAI 2.64 handles Haiku 5.5). The UI was checked with real conversations in a headless browser. The eval transcripts were read, not only scored, which is how the saxophone hallucination was found.
 
-The AI wrote most of the code and drafts. I directed the process, made the product and technical decisions, and reviewed each step before it was committed.
+I took part in every step, the coding included: we worked as a pair, I directed the process, made the product and technical decisions, asked for changes and reviewed each step before it was committed.
 
 ## Repository layout
 

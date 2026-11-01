@@ -212,7 +212,7 @@ Each rule is listed in `docs/data-quality-report.md` with the affected rows.
 | 6 | Similar customer names; customers 11 and 43 share an e-mail | Never identify a customer by name, or by e-mail alone: 2 of 3 identifiers (B1) |
 | 7 | Orders from 10/2025 to 03/2026; "today" is later | Real Campo Grande time, overridable with `AGENT_NOW` for the demo (B2) |
 | 8 | Manual: two WhatsApp numbers; e-mail with an accent; ambiguous installment minimum | WhatsApp (67) 3321-4500 (§7), phone (67) 3341-4444 (§1.2); e-mail without the accent; installments per §3.1: up to 3x with installments ≥ R$ 50, 4–6x ≥ R$ 80, 7–12x ≥ R$ 100 |
-| 9 | `pdftotext` scrambles the manual's tables (§1.2 company data, §2 hours, §3 payment) | The extraction script rebuilds these tables through an explicit, commented corrections step; T-policies asserts the key facts |
+| 9 | `pdftotext` scrambles the manual's tables (§1.2 company data, §2 hours, §3 payment) | pypdf's layout mode keeps each table row on one line; `scripts/extract_policies.py` turns the rows into Markdown tables and applies an explicit list of corrections for rule 8, documented in `data/processed/policies/README.md`. T-policies asserts the key facts and that the files match a fresh extraction |
 | 10 | Return deadlines count from "receipt" (regret, 7 days) or "purchase" (defect, 30 days); there is no receipt date and no sales channel | Receipt = `estimated_delivery`; every order is assumed to be online; the final decision always goes through a ticket |
 | 11 | Orders 9–16 still pending or confirmed since Feb–Mar 2026; order 8 shipped and past its estimated delivery (found while building the loader) | `get_order_status` marks these orders as overdue; Tom reports the recorded status and offers a ticket |
 

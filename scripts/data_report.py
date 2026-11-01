@@ -79,6 +79,9 @@ def render(store: StoreData, issues: list[DataIssue], today: date) -> str:
         "- Return windows count from receipt, which the data does not record. The agent uses "
         "`estimated_delivery` as the receipt date and treats every order as an online purchase; "
         "the final return decision always goes through a ticket.",
+        "- The store manual's own contradictions (two WhatsApp numbers, an accented e-mail "
+        "domain, an ambiguous minimum installment) and how the extraction corrects them are "
+        "listed in `data/processed/policies/README.md`.",
         "",
     ]
     return "\n".join(lines)
@@ -91,7 +94,8 @@ def main() -> None:
     today = args.today or datetime.now(ZoneInfo("America/Campo_Grande")).date()
 
     store = load_store()
-    REPORT.write_text(render(store, find_issues(store, today), today), encoding="utf-8")
+    report = render(store, find_issues(store, today), today)
+    REPORT.write_text(report, encoding="utf-8", newline="\n")
     print(f"Wrote {REPORT}")
 
 

@@ -190,6 +190,21 @@ def _next_opening(now: datetime) -> datetime:
     raise AssertionError("the store opens at least once in two weeks")
 
 
+# --- Orders ---------------------------------------------------------------------------------
+
+# An order still pending or confirmed this many days after it was placed is late (data rule 11).
+OVERDUE_AFTER_DAYS = 30
+
+
+def is_overdue(order: Order, today: date) -> bool:
+    """Open long after it was placed, or shipped and past its estimated delivery."""
+    if order.status in ("pending", "confirmed"):
+        return (today - order.order_date).days > OVERDUE_AFTER_DAYS
+    if order.status == "shipped" and order.estimated_delivery:
+        return order.estimated_delivery < today
+    return False
+
+
 # --- Customer verification (decision B1) ----------------------------------------------------
 
 MAX_VERIFICATION_ATTEMPTS = 3

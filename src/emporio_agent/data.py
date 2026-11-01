@@ -32,9 +32,6 @@ KNOWN_BRANDS = (
     "Takamine", "Tama", "Taylor", "Yamaha",
 )  # fmt: skip
 
-# An open order (pending, confirmed) older than this is reported as overdue.
-OVERDUE_AFTER_DAYS = 30
-
 
 class DataLoadError(Exception):
     """A CSV row breaks the schema or references a record that does not exist."""
@@ -328,13 +325,11 @@ def _description_conflict(product: Product) -> str | None:
 
 
 def _overdue_detail(order: Order, today: date) -> str | None:
-    if order.status in ("pending", "confirmed"):
-        age = (today - order.order_date).days
-        if age > OVERDUE_AFTER_DAYS:
-            return f"{order.status} since {order.order_date.isoformat()} ({age} days)"
-    if order.status == "shipped" and order.estimated_delivery and order.estimated_delivery < today:
-        return f"shipped, estimated delivery {order.estimated_delivery.isoformat()} has passed"
-    return None
+    if not rules.is_overdue(order, today):
+        return None
+    if order.status == "shipped":
+        return f"shipped, estimated delivery {order.estimated_delivery} has passed"
+    return f"{order.status} since {order.order_date} ({(today - order.order_date).days} days)"
 
 
 def _shared_contacts(store: StoreData, field: str, kind: str) -> list[DataIssue]:

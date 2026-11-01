@@ -117,6 +117,7 @@ flowchart LR
 | `rules.py` | Pure functions: final price (promotion / PIX), allowed installments, store open/closed and next opening, 2-of-3 verification, return-window eligibility, product alternatives |
 | `policies.py` | Loads `data/processed/policies/*.md`, one file per topic |
 | `tickets.py` | Creates a protocol (`EMP-YYYYMMDD-NNNN`), appends to `runtime/tickets.jsonl`, computes the expected response time |
+| `formatting.py` | Brazilian formatting shared by tools, tickets and agent: `R$ 1.234,56`, weekday and date in Portuguese |
 | `tools.py` | The 5 tools the LLM sees: thin wrappers that call `rules`/`data` and return explicit, structured results |
 | `guard.py` | Extracts R$ amounts from a reply and checks them against the tool results and customer messages in the session |
 | `agent.py` | PydanticAI agent, system prompt, output validator (guard), `Session` (history + state), `run_turn()` with error handling |
@@ -231,7 +232,7 @@ Each rule is listed in `docs/data-quality-report.md` with the affected rows.
 
 | Tool | Input | Output (decided in code) |
 |---|---|---|
-| `search_products` | `query?`, `category?`, `min_price?`, `max_price?`, `only_available=True` | Up to 10 items: id, name, category, final price, availability. Explicit message when a category is empty or nothing matches |
+| `search_products` | `query?`, `category?`, `min_price?`, `max_price?`, `only_available=True` | Up to 15 items sorted by final price: id, name, category, final price, promotion, availability. Matching products that are not for sale are listed separately (`unavailable_matches`), so "not found" never hides an out-of-stock product. Explicit message when a category is empty or nothing matches |
 | `get_product` | `product_id` | Status and availability, specs, original price, active promotion (% and final price), PIX price (only without a promotion), allowed installment options, ended promotions, and **alternatives** (same category, available, closest price) when it is out of stock, discontinued or coming soon |
 | `get_order_status` | `order_id?`, `email?`, `phone?` | Verification in code (2 of 3, normalized). The failure message never says which field failed; after 3 failures, it recommends a human. On success: the customer's orders with status, items, tracking, estimated delivery, an **overdue** flag (§6.2 rule 11) and **return eligibility** by type (regret / defect / preference) with deadlines. The verified customer is kept in the session |
 | `get_policy` | `topic` ∈ {store_info, hours, payment, returns, shipping, promotions, warranty, privacy} | The section text from the manual |

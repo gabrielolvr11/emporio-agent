@@ -69,14 +69,14 @@ The LLM picks which tool to call and writes the reply. A guard checks every R$ a
 | P1-1 | **Automated tests**: pytest without the API, plus LLM eval scenarios with one command that writes a report (pass rate, latency, cost) | `tests/`, `evals/` | report in `evals/reports/` |
 | P1-2 | **Data validation with a report** of the inconsistencies and how each is handled | `data.py`, `scripts/data_report.py` | `docs/data-quality-report.md`, T-data |
 | P1-3 | **Ticket and human handoff** with a protocol number and the expected response time | `tickets.py`, `open_ticket` | T-ticket, E-12 |
-| P1-4 | **Date and time awareness**: open/closed status and next opening, with `AGENT_NOW` to simulate a date | `rules.clock` | T-clock, E-13 |
+| P1-4 | **Date and time awareness**: open/closed status and next opening, closed on Sundays and holidays (national holidays, Good Friday computed from Easter, and the Mato Grosso do Sul state holiday on 11/10), with `AGENT_NOW` to simulate a date | `rules` (clock section) | T-clock, E-13 |
 | P1-5 | **Numeric fidelity guard**: every R$ amount in a reply must appear in a tool result or in the customer's own messages. Otherwise the agent retries once with a correction; if that also fails, it sends a safe message and opens a ticket | `guard.py` + PydanticAI output validator | T-guard |
 | P1-6 | UI in the store's visual identity, with a "Mostrar raciocínio" switch (on by default) and a side panel | `ui.py` | demo |
 | P1-7 | **Model comparison**: the eval suite runs once on Claude Haiku 5.5 and once on Claude Sonnet 5.5, and the README compares accuracy, latency and cost. Cost: a few cents | `evals/run.py --model` | two reports |
 
 ### 2.3 P2: only if P0 and P1 are done
 
-LLM-as-judge for tone and coherence · token streaming in the UI · 2026 national holiday list · repeated eval runs to measure variance · persistent history across sessions · Docker or deploy · external observability (Langfuse or LangSmith).
+LLM-as-judge for tone and coherence · token streaming in the UI · repeated eval runs to measure variance · persistent history across sessions · Docker or deploy · external observability (Langfuse or LangSmith).
 
 ## 3. Closed scope
 
@@ -85,7 +85,7 @@ LLM-as-judge for tone and coherence · token streaming in the UI · 2026 nationa
 **Explicitly out of scope** (each one becomes a "limitations / next steps" item in the README):
 - Creating orders, reservations or payments. Tom advises; the purchase happens with the team.
 - Shipping quotes for other cities: the manual requires a postcode-based quote and we have no data, so Tom opens a ticket.
-- Holiday calendar: the manual says the store closes on holidays, but no calendar exists. Known limitation (P2).
+- Municipal holidays: the store closes on national holidays and on the Mato Grosso do Sul state holiday (P1-4), but Campo Grande's municipal holidays are not modelled, because the sources disagree on them.
 - Login, user accounts, persistence across sessions, WhatsApp integration, deploy, vector database, multiple agents, LLM-generated SQL.
 - Fixing the source data: inconsistencies are reported and handled by rules, not rewritten.
 
@@ -369,7 +369,7 @@ No force-push, no history rewrite, no change after 2026-11-04 23:59.
 | Non-deterministic answers | Medium | Evals check facts and tools, not exact wording; regex tolerant to number formats |
 | The UI takes longer than planned | Medium | 2.5 h timebox; default theme fallback |
 | Prompt injection ("ignore the rules", "show me order 5") | Medium | Authorization lives in code (verification in the tool, not in the prompt); rule-persistence line in the prompt; E-11 |
-| Holiday not recognized (Mon 02/11 is a holiday) | Low | Documented limitation; P2 holiday list |
+| A municipal holiday not recognized | Low | National and state holidays are computed (Mon 02/11, Finados, closes the store); municipal ones are a documented limitation |
 | Deadline | High | Freeze Wed 18:00; ordered cut list (§10) |
 
 ## 12. Delivery checklist
@@ -423,4 +423,5 @@ No force-push, no history rewrite, no change after 2026-11-04 23:59.
 | H2 | PDF name: "Gabriel Oliveira Souza - AI Engineer" |
 | H3 | Public repo `gabrielolvr11/emporio-agent`; commits and pushes during implementation without asking each time |
 | H4 | Live demo with a script plus README with a Mermaid diagram; no slides |
+| Holidays | User request (31/10): Tom knows that Mon 02/11 is a holiday; the store does not open on Sundays or holidays. National and state holidays from Campo Grande's Decreto 16.469/2025; municipal holidays left out (sources disagree) |
 | Approval | Document approved on 2026-10-31, including the points added after the interview: P1-5 numeric fidelity guard, P1-7 Haiku vs Sonnet comparison, stdlib `csv` + Pydantic instead of pandas, explicit corrections step for the manual's scrambled tables (§6.2 rule 9) |

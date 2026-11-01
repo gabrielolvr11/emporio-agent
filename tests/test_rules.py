@@ -79,15 +79,17 @@ def test_prices_round_half_up():
 @pytest.mark.parametrize(
     ("now", "is_open", "next_opening"),
     [
-        ("2026-11-02T09:00", True, None),  # Monday opening
-        ("2026-11-02T17:59", True, None),
-        ("2026-11-02T08:59", False, "2026-11-02T09:00"),
-        ("2026-11-02T18:00", False, "2026-11-03T09:00"),
-        ("2026-11-06T18:30", False, "2026-11-07T09:00"),  # Friday evening -> Saturday
-        ("2026-10-31T12:59", True, None),  # Saturday until 13:00
-        ("2026-10-31T13:00", False, "2026-11-02T09:00"),
-        ("2026-10-31T19:40", False, "2026-11-02T09:00"),
-        ("2026-11-01T10:00", False, "2026-11-02T09:00"),  # Sunday
+        ("2026-11-09T09:00", True, None),  # Monday opening
+        ("2026-11-09T17:59", True, None),
+        ("2026-11-09T08:59", False, "2026-11-09T09:00"),
+        ("2026-11-09T18:00", False, "2026-11-10T09:00"),
+        ("2026-11-13T18:30", False, "2026-11-14T09:00"),  # Friday evening -> Saturday
+        ("2026-11-14T12:59", True, None),  # Saturday until 13:00
+        ("2026-11-14T13:00", False, "2026-11-16T09:00"),  # Sunday 15/11 is also a holiday
+        ("2026-10-31T19:40", False, "2026-11-03T09:00"),  # Monday 02/11 is Finados
+        ("2026-11-01T10:00", False, "2026-11-03T09:00"),  # Sunday
+        ("2026-11-02T10:00", False, "2026-11-03T09:00"),  # Finados
+        ("2026-04-03T10:00", False, "2026-04-04T09:00"),  # Good Friday
     ],
 )
 def test_store_status(now, is_open, next_opening):
@@ -98,6 +100,33 @@ def test_store_status(now, is_open, next_opening):
 
 def test_closing_time_when_open():
     assert rules.store_status(at("2026-10-31T10:00")).closes_at == at("2026-10-31T13:00")
+
+
+def test_holiday_is_reported_when_closed():
+    assert rules.store_status(at("2026-11-02T10:00")).holiday == "Finados"
+    assert rules.store_status(at("2026-11-03T10:00")).holiday is None
+
+
+@pytest.mark.parametrize(
+    ("year", "easter"),
+    [(2019, "2019-04-21"), (2024, "2024-03-31"), (2025, "2025-04-20"), (2026, "2026-04-05")],
+)
+def test_easter(year, easter):
+    assert rules.easter(year) == date.fromisoformat(easter)
+
+
+def test_holidays_2026_match_the_official_calendar():
+    # Campo Grande's Decreto 16.469/2025: 10 national holidays plus the state holiday (11/10).
+    found = rules.upcoming_holidays(date(2026, 1, 1), days=364)
+    assert [day.strftime("%d/%m") for day, _ in found] == [
+        "01/01", "03/04", "21/04", "01/05", "07/09", "11/10", "12/10", "02/11", "15/11", "20/11",
+        "25/12",
+    ]  # fmt: skip
+    assert rules.holiday(date(2023, 11, 20)) is None  # Consciência Negra: national since 2024
+
+
+def test_upcoming_holidays_from_saturday():
+    assert rules.upcoming_holidays(date(2026, 10, 31)) == [(date(2026, 11, 2), "Finados")]
 
 
 def test_current_time_override():

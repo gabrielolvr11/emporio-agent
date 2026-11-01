@@ -89,11 +89,26 @@ def price_of(product: Product, promotions: list[Promotion]) -> Price:
 # --- Opening hours (manual 2) ---------------------------------------------------------------
 
 TIMEZONE = ZoneInfo("America/Campo_Grande")
-# weekday (Monday = 0) -> (opening, closing). Sunday is closed. Holidays are closed too, but
-# the data has no holiday calendar, so they are not modelled (a documented limitation).
+# weekday (Monday = 0) -> (opening, closing). The store is closed on Sundays and holidays.
 OPENING_HOURS = {
     **{weekday: (time(9), time(18)) for weekday in range(5)},
     5: (time(9), time(13)),
+}
+
+# National holidays (Lei 662/1949, Lei 6.802/1980, Lei 14.759/2023) and the Mato Grosso do Sul
+# state holiday, as listed for 2026 by Campo Grande's Decreto 16.469/2025. Good Friday is
+# computed from Easter. Municipal holidays are not included: the sources disagree on them.
+FIXED_HOLIDAYS = {
+    (1, 1): "Confraternização Universal",
+    (4, 21): "Tiradentes",
+    (5, 1): "Dia do Trabalho",
+    (9, 7): "Independência do Brasil",
+    (10, 11): "Criação do Estado de Mato Grosso do Sul",
+    (10, 12): "Nossa Senhora Aparecida",
+    (11, 2): "Finados",
+    (11, 15): "Proclamação da República",
+    (11, 20): "Dia Nacional de Zumbi e da Consciência Negra",  # national since 2024
+    (12, 25): "Natal",
 }
 
 
@@ -103,7 +118,43 @@ class StoreStatus:
     closes_at: datetime | None
     """Today's closing time, when open."""
     next_opening: datetime | None
-    """The next opening time, when closed."""
+    """The next opening time, when closed. Sundays and holidays are skipped."""
+    holiday: str | None
+    """Today's holiday, if any."""
+
+
+def easter(year: int) -> date:
+    """Gregorian Easter Sunday (Meeus/Jones/Butcher algorithm)."""
+    a = year % 19
+    b, c = divmod(year, 100)
+    d, e = divmod(b, 4)
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    weekday_offset = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * weekday_offset) // 451
+    month, day = divmod(h + weekday_offset - 7 * m + 114, 31)
+    return date(year, month, day + 1)
+
+
+def holiday(day: date) -> str | None:
+    """Name of the holiday on `day`, or None."""
+    if day == easter(day.year) - timedelta(days=2):
+        return "Paixão de Cristo (Sexta-feira Santa)"
+    if (day.month, day.day) == (11, 20) and day.year < 2024:
+        return None
+    return FIXED_HOLIDAYS.get((day.month, day.day))
+
+
+def upcoming_holidays(start: date, days: int = 7) -> list[tuple[date, str]]:
+    """Holidays from `start` (inclusive) over the next `days` days."""
+    found = []
+    for offset in range(days + 1):
+        day = start + timedelta(days=offset)
+        if name := holiday(day):
+            found.append((day, name))
+    return found
 
 
 def current_time(override: str | None = None) -> datetime:
@@ -118,20 +169,25 @@ def current_time(override: str | None = None) -> datetime:
 
 def store_status(now: datetime) -> StoreStatus:
     now = now.astimezone(TIMEZONE)
-    hours = OPENING_HOURS.get(now.weekday())
+    today_holiday = holiday(now.date())
+    hours = _hours_on(now.date())
     if hours and hours[0] <= now.time() < hours[1]:
-        return StoreStatus(True, datetime.combine(now.date(), hours[1], TIMEZONE), None)
-    return StoreStatus(False, None, _next_opening(now))
+        return StoreStatus(True, datetime.combine(now.date(), hours[1], TIMEZONE), None, None)
+    return StoreStatus(False, None, _next_opening(now), today_holiday)
+
+
+def _hours_on(day: date) -> tuple[time, time] | None:
+    return None if holiday(day) else OPENING_HOURS.get(day.weekday())
 
 
 def _next_opening(now: datetime) -> datetime:
-    for days_ahead in range(8):
+    for days_ahead in range(15):
         day = now.date() + timedelta(days=days_ahead)
-        if hours := OPENING_HOURS.get(day.weekday()):
+        if hours := _hours_on(day):
             opening = datetime.combine(day, hours[0], TIMEZONE)
             if opening > now:
                 return opening
-    raise AssertionError("the store opens at least once a week")
+    raise AssertionError("the store opens at least once in two weeks")
 
 
 # --- Customer verification (decision B1) ----------------------------------------------------

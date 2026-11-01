@@ -221,7 +221,7 @@ Each rule is listed in `docs/data-quality-report.md` with the affected rows.
 
 ### 7.1 One turn
 
-1. The UI sends the message. `Session` adds a context block: `Now: Sat 31/10/2026 19:40 (Campo Grande) · store CLOSED · reopens Mon 02/11 09:00`.
+1. The UI sends the message. `run_turn()` puts a context block before it, as a separate text block of the same user turn: current date and time in Campo Grande, store status (`FECHADA. Reabre terça, 03/11, às 09:00.`), holidays in the next 7 days (`segunda, 02/11 (Finados)`), whether the customer is verified, and the tickets already opened.
 2. The agent runs with the full history (append-only) and the frozen system prompt.
 3. The LLM calls 0..n tools. Each one returns explicit results, including explicit negatives ("not found", "category has no items", "verification failed").
 4. The output validator runs the fidelity guard. On failure it raises `ModelRetry` once with the offending amounts. A second failure produces a safe reply and an `unanswered_question` ticket.

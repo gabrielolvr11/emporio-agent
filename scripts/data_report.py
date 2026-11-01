@@ -77,8 +77,9 @@ def render(store: StoreData, issues: list[DataIssue], today: date) -> str:
         f"more than 30 days after it was placed, or shipped past its estimated delivery, as "
         f"of {today.isoformat()}.",
         "- Return windows count from receipt, which the data does not record. The agent uses "
-        "`estimated_delivery` as the receipt date and treats every order as an online purchase; "
-        "the final return decision always goes through a ticket.",
+        "`estimated_delivery` as the receipt date and treats every order as an online purchase. "
+        "The manual does not say when the 7-day preference exchange starts; it is also counted "
+        "from receipt. The final return decision always goes through a ticket.",
         "- The store manual's own contradictions (two WhatsApp numbers, an accented e-mail "
         "domain, an ambiguous minimum installment) and how the extraction corrects them are "
         "listed in `data/processed/policies/README.md`.",

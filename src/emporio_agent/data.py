@@ -20,6 +20,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
+from emporio_agent import rules
+
 RAW_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
 FILE_PREFIX = "desafio_tecnico_ai_eng - "
 
@@ -183,6 +185,15 @@ ISSUE_KINDS: dict[str, tuple[str, str]] = {
         "Order still open long after it was placed, or past its estimated delivery",
         "Tom reports the recorded status and offers a ticket so the team can check the order.",
     ),
+    "pix_without_discount": (
+        "PIX order recorded at the list price, without the 5% PIX discount",
+        "Tom shows the recorded total. New quotes apply the discount (rules.price_of).",
+    ),
+    "installment_below_minimum": (
+        "Credit-card order with more installments than the manual's minimums allow",
+        "Tom shows the recorded order. New quotes offer only the allowed installment counts "
+        "(rules.installment_options).",
+    ),
 }
 
 
@@ -249,6 +260,15 @@ def find_issues(store: StoreData, today: date) -> list[DataIssue]:
                     add("unreleased_product_sold", "order", oid, detail)
         if overdue := _overdue_detail(order, today):
             add("overdue_order", "order", oid, overdue)
+        if order.payment_method == "pix" and order.total_brl == at_current_prices:
+            add("pix_without_discount", "order", oid, f"R$ {order.total_brl:,.2f}; with the "
+                f"discount R$ {rules.pix_price(order.total_brl):,.2f}")  # fmt: skip
+        if credit := re.fullmatch(r"credit_(\d+)x", order.payment_method):
+            count = int(credit[1])
+            if count > rules.max_installments(order.total_brl):
+                add("installment_below_minimum", "order", oid,
+                    f"R$ {order.total_brl:,.2f} in {count}x = R$ {order.total_brl / count:,.2f} "
+                    f"each, minimum R$ {rules.minimum_installment(count):,.2f}")  # fmt: skip
 
     issues += _shared_contacts(store, "email", "shared_email")
     issues += _shared_contacts(store, "phone", "shared_phone")

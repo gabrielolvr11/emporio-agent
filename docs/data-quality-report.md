@@ -28,6 +28,8 @@ The loader validates every row against a typed schema and checks every reference
 | Customers sharing an e-mail | 1 | An e-mail alone never identifies a customer: 2 of 3 identifiers must match (order number, e-mail, phone). |
 | Customers whose names overlap | 3 | Tom never identifies a customer by name: 2 of 3 identifiers must match. |
 | Order still open long after it was placed, or past its estimated delivery | 9 | Tom reports the recorded status and offers a ticket so the team can check the order. |
+| PIX order recorded at the list price, without the 5% PIX discount | 5 | Tom shows the recorded total. New quotes apply the discount (rules.price_of). |
+| Credit-card order with more installments than the manual's minimums allow | 3 | Tom shows the recorded order. New quotes offer only the allowed installment counts (rules.installment_options). |
 
 ### Description contradicts the product's structured fields
 
@@ -85,9 +87,23 @@ The loader validates every row against a typed schema and checks every reference
 - Order 15: pending since 2026-03-18 (227 days)
 - Order 16: pending since 2026-03-22 (223 days)
 
+### PIX order recorded at the list price, without the 5% PIX discount
+
+- Order 1: R$ 11,499.00; with the discount R$ 10,924.05
+- Order 5: R$ 4,599.00; with the discount R$ 4,369.05
+- Order 10: R$ 8,732.00; with the discount R$ 8,295.40
+- Order 13: R$ 1,899.00; with the discount R$ 1,804.05
+- Order 17: R$ 689.00; with the discount R$ 654.55
+
+### Credit-card order with more installments than the manual's minimums allow
+
+- Order 9: R$ 349.90 in 6x = R$ 58.32 each, minimum R$ 80.00
+- Order 16: R$ 429.90 in 6x = R$ 71.65 each, minimum R$ 80.00
+- Order 18: R$ 459.90 in 12x = R$ 38.32 each, minimum R$ 100.00
+
 ## Notes
 
 - Contradictory descriptions are found with a heuristic: the description names another brand from the catalog, or a different number of strings (`cordas`) or keys (`teclas`) than the specs. Model-line mismatches without a brand name (for example a bass named Ibanez described as a Precision) are not detected.
 - Overdue orders depend on the report date: an order still pending or confirmed more than 30 days after it was placed, or shipped past its estimated delivery, as of 2026-10-31.
-- Return windows count from receipt, which the data does not record. The agent uses `estimated_delivery` as the receipt date and treats every order as an online purchase; the final return decision always goes through a ticket.
+- Return windows count from receipt, which the data does not record. The agent uses `estimated_delivery` as the receipt date and treats every order as an online purchase. The manual does not say when the 7-day preference exchange starts; it is also counted from receipt. The final return decision always goes through a ticket.
 - The store manual's own contradictions (two WhatsApp numbers, an accented e-mail domain, an ambiguous minimum installment) and how the extraction corrects them are listed in `data/processed/policies/README.md`.

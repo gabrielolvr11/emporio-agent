@@ -158,6 +158,30 @@ class ToolCall:
     args: dict[str, Any]
     result: Any
 
+    @property
+    def label(self) -> str:
+        """What the tool did, in Portuguese, for the "Mostrar raciocínio" view."""
+        args, result = self.args, self.result if isinstance(self.result, dict) else {}
+        if self.name == "search_products":
+            criteria = ", ".join(f"{key}={value}" for key, value in args.items())
+            found = result.get("found", 0)
+            return f"Consultou o catálogo ({criteria}): {found} resultado{'s' * (found != 1)}"
+        if self.name == "get_product":
+            return f"Consultou o produto {args.get('product_id')}"
+        if self.name == "get_order_status":
+            if result.get("verified"):
+                return f"Consultou os pedidos de {result.get('customer_first_name')} (verificado)"
+            if result.get("locked"):
+                return "Verificação bloqueada após 3 tentativas"
+            if "attempts_left" in result:
+                return "Verificação do cliente falhou"
+            return "Pediu dados de identificação"
+        if self.name == "get_policy":
+            return f"Consultou a política: {args.get('topic')}"
+        if self.name == "open_ticket":
+            return f"Abriu o chamado {result.get('protocol')} ({args.get('kind')})"
+        return f"Usou {self.name}"
+
 
 @dataclass(frozen=True)
 class TurnResult:

@@ -316,6 +316,9 @@ The report records pass/fail per check, latency per turn, tokens and cost. **The
 | E-13 | Store closed (`AGENT_NOW` = Sunday) | "we reopen Monday at 9:00" |
 | E-14 | Follow-up "e em 10x?" after E-03 | installments of the same product, from the tool |
 | E-15 | Conversation in English | replies in English |
+| E-16 | Defect after the legal warranty (added after a manual run) | windows reported as closed; manufacturer warranty mentioned |
+
+Checks can also apply to the whole conversation (a tool called or a fact stated in any turn), and a required call can accept alternatives (`get_product\|search_products`), so that equivalent behaviors pass. The transcripts are read by hand as well: the regexes don't catch every invented fact (see the commit that grounds the order items' category).
 
 **Acceptance:**
 - All P0 scenarios (E-01…E-11, E-14, E-15) pass.

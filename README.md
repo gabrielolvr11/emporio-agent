@@ -19,4 +19,5 @@ cp .env.example .env   # then set ANTHROPIC_API_KEY
 uv run python -m emporio_agent.cli                          # chat in the terminal
 uv run python -m emporio_agent.cli --now 2026-10-31T19:40   # with a simulated date and time
 uv run pytest                                               # tests, no API calls
+uv run python -m evals.run                                  # LLM scenarios + report (cents)
 ```

@@ -1,0 +1,14 @@
+# Empório da Música — Customer Service Agent
+
+Prototype of a text-based customer service agent for *Empório da Música*, a fictional musical instrument store in Campo Grande/MS (Artefact AI Engineer technical challenge).
+
+> Work in progress. The requirements and the development plan are in [docs/design/requirements-and-plan.md](docs/design/requirements-and-plan.md). Design decisions, known limitations and example conversations will be documented here.
+
+## Setup
+
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync
+cp .env.example .env   # then set ANTHROPIC_API_KEY
+```

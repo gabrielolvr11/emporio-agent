@@ -391,8 +391,12 @@ def _order_details(order: Order, store: StoreData, today: date) -> dict[str, Any
         "status": STATUS_LABELS[order.status],
         "total": brl(order.total_brl),
         "payment": _payment_label(order.payment_method),
-        "items": [
-            {"name": store.products[item.product_id].name, "quantity": item.quantity}
+        "items": [  # the category grounds the instrument type ("Soprano" is a ukulele size)
+            {
+                "name": store.products[item.product_id].name,
+                "category": store.categories[store.products[item.product_id].category_id].name,
+                "quantity": item.quantity,
+            }
             for item in store.items_of(order.order_id)
         ],
         "tracking_code": order.tracking_code,

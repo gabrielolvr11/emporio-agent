@@ -181,6 +181,9 @@ def test_late_order_is_flagged(ctx):
 def test_return_windows_follow_the_clock(store, policies, tmp_path):
     ctx = make_ctx(store, policies, tmp_path, now="2026-02-20T10:00")
     result = get_order_status(ctx, order_id=7, email="leticia.rocha@jmail.com")
+    assert result["orders"][0]["items"] == [
+        {"name": "Shelby SU-21S Soprano Sunburst", "category": "Ukuleles", "quantity": 1}
+    ]
     windows = {w["type"]: w for w in result["orders"][0]["return_windows"]}
     regret = windows["devolução por arrependimento (compra online)"]
     assert regret == {

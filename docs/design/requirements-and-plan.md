@@ -204,16 +204,17 @@ Each rule is listed in `docs/data-quality-report.md` with the affected rows.
 
 | # | Issue found | Rule |
 |---|---|---|
-| 1 | Products 135–144: name contradicts the description/specs | Structured fields win (name, price, stock, status, specs). The contradictory description is not shown |
+| 1 | Products 135, 137, 139, 140, 142, 144: the description names another brand or a different string/key count (heuristic check in `data.py`) | Structured fields win (name, price, stock, status, specs). The contradictory description is not shown |
 | 2 | Categories 6, 7, 8 have no products, but the manual says the store sells them | "No items in the online catalog right now" plus a handoff offer. Never "we don't sell that" |
 | 3 | #136 discontinued with 13 in stock; #130 coming_soon but already in a delivered order | Discontinued and coming_soon are **not for sale**, whatever the stock |
 | 4 | Order totals ≠ sum of items (#3, #20); PIX orders without the 5 % discount | Tom shows the recorded total; the mismatch appears only in the report |
 | 5 | Several promotions per product; no validity dates | Only `is_active = 1` counts. Ended promotions are mentioned transparently if the customer asks |
-| 6 | Similar customer names | Never identify a customer by name: 2 of 3 identifiers (B1) |
+| 6 | Similar customer names; customers 11 and 43 share an e-mail | Never identify a customer by name, or by e-mail alone: 2 of 3 identifiers (B1) |
 | 7 | Orders from 10/2025 to 03/2026; "today" is later | Real Campo Grande time, overridable with `AGENT_NOW` for the demo (B2) |
 | 8 | Manual: two WhatsApp numbers; e-mail with an accent; ambiguous installment minimum | WhatsApp (67) 3321-4500 (§7), phone (67) 3341-4444 (§1.2); e-mail without the accent; installments per §3.1: up to 3x with installments ≥ R$ 50, 4–6x ≥ R$ 80, 7–12x ≥ R$ 100 |
 | 9 | `pdftotext` scrambles the manual's tables (§1.2 company data, §2 hours, §3 payment) | The extraction script rebuilds these tables through an explicit, commented corrections step; T-policies asserts the key facts |
 | 10 | Return deadlines count from "receipt" (regret, 7 days) or "purchase" (defect, 30 days); there is no receipt date and no sales channel | Receipt = `estimated_delivery`; every order is assumed to be online; the final decision always goes through a ticket |
+| 11 | Orders 9–16 still pending or confirmed since Feb–Mar 2026; order 8 shipped and past its estimated delivery (found while building the loader) | `get_order_status` marks these orders as overdue; Tom reports the recorded status and offers a ticket |
 
 ## 7. Main flows
 
@@ -232,7 +233,7 @@ Each rule is listed in `docs/data-quality-report.md` with the affected rows.
 |---|---|---|
 | `search_products` | `query?`, `category?`, `min_price?`, `max_price?`, `only_available=True` | Up to 10 items: id, name, category, final price, availability. Explicit message when a category is empty or nothing matches |
 | `get_product` | `product_id` | Status and availability, specs, original price, active promotion (% and final price), PIX price (only without a promotion), allowed installment options, ended promotions, and **alternatives** (same category, available, closest price) when it is out of stock, discontinued or coming soon |
-| `get_order_status` | `order_id?`, `email?`, `phone?` | Verification in code (2 of 3, normalized). The failure message never says which field failed; after 3 failures, it recommends a human. On success: the customer's orders with status, items, tracking, estimated delivery and **return eligibility** by type (regret / defect / preference) with deadlines. The verified customer is kept in the session |
+| `get_order_status` | `order_id?`, `email?`, `phone?` | Verification in code (2 of 3, normalized). The failure message never says which field failed; after 3 failures, it recommends a human. On success: the customer's orders with status, items, tracking, estimated delivery, an **overdue** flag (§6.2 rule 11) and **return eligibility** by type (regret / defect / preference) with deadlines. The verified customer is kept in the session |
 | `get_policy` | `topic` ∈ {store_info, hours, payment, returns, shipping, promotions, warranty, privacy} | The section text from the manual |
 | `open_ticket` | `kind` ∈ {complaint, return_request, human_request, unanswered_question, shipping_quote}, `summary` | Protocol, expected response ("within 24 business hours", or from the next opening time if the store is closed) |
 

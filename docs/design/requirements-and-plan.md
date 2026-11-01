@@ -224,7 +224,7 @@ Each rule is listed in `docs/data-quality-report.md` with the affected rows.
 1. The UI sends the message. `run_turn()` puts a context block before it, as a separate text block of the same user turn: current date and time in Campo Grande, store status (`FECHADA. Reabre terça, 03/11, às 09:00.`), holidays in the next 7 days (`segunda, 02/11 (Finados)`), whether the customer is verified, and the tickets already opened.
 2. The agent runs with the full history (append-only) and the frozen system prompt.
 3. The LLM calls 0..n tools. Each one returns explicit results, including explicit negatives ("not found", "category has no items", "verification failed").
-4. The output validator runs the fidelity guard. On failure it raises `ModelRetry` once with the offending amounts. A second failure produces a safe reply and an `unanswered_question` ticket.
+4. The output validator runs the fidelity guard. On failure it raises `ModelRetry` once with the offending amounts. A second failure produces a safe reply and an `unanswered_question` ticket. Because the history is append-only, the model's rejected reply stays in it; the next context block tells the model that its last reply was replaced and what the customer received.
 5. The new messages are appended to the session; the UI renders the reply and the tool blocks; the turn log is written.
 6. On an API error, a refusal or a timeout: a friendly reply ("I had a problem; I can hand you over to the team"), the error is logged and the session stays usable.
 

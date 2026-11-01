@@ -14,14 +14,20 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.capabilities import RaiseContentFilterError
 from pydantic_ai.exceptions import ContentFilterError
-from pydantic_ai.messages import ModelMessage, ToolCallPart, ToolReturnPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
+)
 from pydantic_ai.models import Model
 from pydantic_ai.models.anthropic import AnthropicModelSettings
 
-from emporio_agent import rules
+from emporio_agent import guard, rules, tickets
 from emporio_agent.config import RUNTIME_DIR
 from emporio_agent.data import StoreData
 from emporio_agent.formatting import WEEKDAYS, day_pt, when_pt
@@ -38,12 +44,17 @@ REFUSAL_REPLY = (
     "Desculpe, não consigo ajudar com isso por aqui. Posso te ajudar com instrumentos, pedidos "
     "e políticas da loja, ou te encaminhar para alguém da equipe."
 )
+GUARD_REPLY = (
+    "Quero te passar a informação certinha, então vou confirmar esse valor com a equipe antes. "
+    "Registrei o chamado {protocol}, e a equipe responde {response_time}. "
+    "Posso ajudar com mais alguma coisa?"
+)
 
 logger = logging.getLogger(__name__)
 
 
 def build_agent(model: str | Model) -> Agent[Deps, str]:
-    return Agent(
+    agent = Agent(
         model,
         deps_type=Deps,
         output_type=str,
@@ -53,6 +64,66 @@ def build_agent(model: str | Model) -> Agent[Deps, str]:
         capabilities=[RaiseContentFilterError()],
         retries=2,
     )
+    agent.output_validator(check_amounts)
+    return agent
+
+
+async def check_amounts(ctx: RunContext[Deps], output: str) -> str:
+    """Numeric fidelity guard: one retry with a correction, then a safe reply and a ticket."""
+    unsupported = guard.unsupported_amounts(output, _amount_sources(ctx.messages))
+    if not unsupported:
+        return output
+    state = ctx.deps.state
+    listed = ", ".join(unsupported)
+    if ctx.retry == 0:
+        state.guard_outcome = "retried"
+        raise ModelRetry(
+            f"Estes valores não vieram de nenhuma ferramenta nem do cliente: {listed}. "
+            "Reescreva a resposta usando apenas valores retornados pelas ferramentas, "
+            "sem calcular nada, ou consulte a ferramenta que tem o valor."
+        )
+    state.guard_outcome = "blocked"
+    now = ctx.deps.clock()
+    ticket = tickets.create_ticket(
+        ctx.deps.tickets_file,
+        now,
+        "unanswered_question",
+        f"Resposta bloqueada pela trava de valores (não confirmados: {listed}). "
+        f"Mensagem do cliente: {_customer_text(ctx.prompt)}",
+        state.session_id,
+        state.verified_customer_id,
+    )
+    state.tickets.append(ticket.protocol)
+    reply = GUARD_REPLY.format(protocol=ticket.protocol, response_time=tickets.response_time(now))
+    state.notice = (
+        f"Sua última resposta foi substituída porque citava valores que nenhuma ferramenta "
+        f'retornou ({listed}). O cliente recebeu: "{reply}"'
+    )
+    return reply
+
+
+def _amount_sources(messages: list[ModelMessage]) -> list[str]:
+    """Tool results and customer messages. Retry prompts are excluded: they list the rejected
+    amounts."""
+    sources = []
+    for message in messages:
+        if not isinstance(message, ModelRequest):
+            continue
+        for part in message.parts:
+            if isinstance(part, ToolReturnPart):
+                sources.append(part.model_response_str())
+            elif isinstance(part, UserPromptPart):
+                content = [part.content] if isinstance(part.content, str) else part.content
+                sources += [item for item in content if isinstance(item, str)]
+    return sources
+
+
+def _customer_text(prompt: object) -> str:
+    """The customer's message, without the context block."""
+    if isinstance(prompt, str):
+        return prompt
+    texts = [item for item in prompt or [] if isinstance(item, str)]
+    return texts[-1] if texts else ""
 
 
 @dataclass
@@ -95,6 +166,8 @@ class TurnResult:
     latency_s: float
     input_tokens: int = 0
     output_tokens: int = 0
+    guard: str = "ok"
+    """Numeric fidelity guard: ok, retried (fixed on the second try) or blocked."""
     error: str | None = None
 
 
@@ -122,6 +195,8 @@ def context_block(now: datetime, deps: Deps) -> str:
         lines.append("Cliente não verificado.")
     if state.tickets:
         lines.append(f"Chamados já abertos nesta conversa: {', '.join(state.tickets)}.")
+    if state.notice:
+        lines.append(f"Aviso: {state.notice}")
     return "\n".join(lines)
 
 
@@ -129,12 +204,11 @@ async def run_turn(agent: Agent[Deps, str], session: Session, text: str) -> Turn
     """Answer one customer message. Never raises: failures become a safe reply."""
     deps = session.deps
     started = time.perf_counter()
+    context = context_block(deps.clock(), deps)
+    deps.state.notice = None  # delivered once
+    deps.state.guard_outcome = "ok"
     try:
-        result = await agent.run(
-            [context_block(deps.clock(), deps), text],
-            message_history=session.history,
-            deps=deps,
-        )
+        result = await agent.run([context, text], message_history=session.history, deps=deps)
     except ContentFilterError:
         turn = TurnResult(REFUSAL_REPLY, [], time.perf_counter() - started, error="refusal")
     except Exception as exc:  # the conversation must survive any failed turn
@@ -150,6 +224,7 @@ async def run_turn(agent: Agent[Deps, str], session: Session, text: str) -> Turn
             time.perf_counter() - started,
             usage.input_tokens,
             usage.output_tokens,
+            guard=deps.state.guard_outcome,
         )
     _log_turn(session, turn)
     return turn
@@ -177,6 +252,7 @@ def _log_turn(session: Session, turn: TurnResult) -> None:
         "input_tokens": turn.input_tokens,
         "output_tokens": turn.output_tokens,
         "tools": [call.name for call in turn.tool_calls],
+        "guard": turn.guard,
         "error": turn.error,
     }
     session.turns_file.parent.mkdir(parents=True, exist_ok=True)

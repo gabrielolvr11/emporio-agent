@@ -49,6 +49,10 @@ class SessionState:
     verified_customer_id: int | None = None
     failed_verifications: int = 0
     tickets: list[str] = field(default_factory=list)
+    guard_outcome: str = "ok"
+    """Numeric fidelity guard result of the current turn: ok, retried or blocked."""
+    notice: str | None = None
+    """A message for the next context block, e.g. that the last reply was replaced."""
 
 
 @dataclass
